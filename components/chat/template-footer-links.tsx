@@ -1,6 +1,8 @@
 "use client";
 
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const EVE_URL = "https://vercel.com/eve";
 const GITHUB_URL = "https://github.com/vercel-labs/eve-chat-template";
@@ -62,6 +64,30 @@ const DEPLOY_URL = (() => {
   return `https://vercel.com/new/clone?${params.toString()}`;
 })();
 
+async function copyTextToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.inset = "0 auto auto 0";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  }
+}
+
 export function TemplateFooterLinks() {
   const [copied, setCopied] = useState(false);
   const resetTimerRef = useRef<number | null>(null);
@@ -76,17 +102,14 @@ export function TemplateFooterLinks() {
   }, []);
 
   const handleCopyPrompt = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(COPY_PROMPT);
-      clearResetTimer();
-      setCopied(true);
-      resetTimerRef.current = window.setTimeout(() => {
-        resetTimerRef.current = null;
-        setCopied(false);
-      }, 1600);
-    } catch {
+    clearResetTimer();
+    setCopied(true);
+    resetTimerRef.current = window.setTimeout(() => {
+      resetTimerRef.current = null;
       setCopied(false);
-    }
+    }, 1600);
+
+    await copyTextToClipboard(COPY_PROMPT);
   }, [clearResetTimer]);
 
   useEffect(() => clearResetTimer, [clearResetTimer]);
@@ -97,20 +120,30 @@ export function TemplateFooterLinks() {
         Build your own chat agent with <FooterLink href={EVE_URL}>Eve</FooterLink>:
       </span>
       <span>
-        <FooterLink href={GITHUB_URL}>View GitHub</FooterLink>,
+        <FooterLink href={GITHUB_URL}>GitHub</FooterLink>,
       </span>
       <span>
-        <FooterLink href={DEPLOY_URL}>Deploy</FooterLink>,
+        <FooterLink href={DEPLOY_URL}>Deploy</FooterLink>
       </span>
       <button
         aria-label={copied ? "Copied setup prompt" : "Copy setup prompt"}
-        className="inline-grid cursor-pointer appearance-none justify-items-start border-0 bg-transparent p-0 text-[inherit] leading-[inherit] font-[inherit] underline underline-offset-4 transition-colors hover:text-foreground"
+        className={cn(
+          "inline-grid cursor-pointer appearance-none grid-cols-[0.75rem_auto] items-center gap-1 rounded-sm border border-border/40 bg-transparent px-1.5 py-0.5 text-[inherit] leading-[inherit] font-[inherit] text-muted-foreground/60 transition-colors hover:border-border/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+          copied && "border-foreground/25 text-foreground",
+        )}
         onClick={handleCopyPrompt}
         title={copied ? "Copied" : "Copy setup prompt"}
         type="button"
       >
-        <span className="invisible col-start-1 row-start-1">Copy Prompt</span>
-        <span className="col-start-1 row-start-1">
+        {copied ? (
+          <CheckIcon className="col-start-1 row-start-1 size-3" />
+        ) : (
+          <CopyIcon className="col-start-1 row-start-1 size-3" />
+        )}
+        <span aria-hidden className="invisible col-start-2 row-start-1">
+          Copy Prompt
+        </span>
+        <span className="col-start-2 row-start-1">
           {copied ? "Copied!" : "Copy Prompt"}
         </span>
       </button>
