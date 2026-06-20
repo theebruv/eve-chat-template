@@ -4,7 +4,9 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { ChatListItem, SetupStatus, Viewer } from "@/lib/chat/types";
 
 export type EnabledConnections = {
+  readonly linear: boolean;
   readonly notion: boolean;
+  readonly sentry: boolean;
 };
 
 type ChatShellContextValue = {

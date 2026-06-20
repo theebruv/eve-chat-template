@@ -72,17 +72,27 @@ Optional environment variables:
 # Override the app origin for custom production domains.
 BETTER_AUTH_URL=
 
-# Enable hosted Notion support.
+# Enable hosted Vercel Connect integrations.
+SLACK_CONNECTOR=
+LINEAR_CONNECTOR=
 NOTION_CONNECTOR=
+SENTRY_CONNECTOR=
 ```
 
-Create the Notion connector:
+Create optional Vercel Connect integrations:
 
 ```bash
+# Slack channel
+vercel connect create slack --name eve-chat-template --triggers
+vercel connect attach <slack-connector-uid> --triggers --trigger-path /eve/v1/slack --yes
+
+# MCP connections
 vercel connect create mcp.notion.com --name notion
+vercel connect create https://mcp.linear.app/mcp --name linear
+vercel connect create https://mcp.sentry.dev/mcp --name sentry
 ```
 
-The deploy button does not require Notion. For manual setup, put the returned connector UID in `NOTION_CONNECTOR`. The app falls back to `notion`, so local connectors created with `--name notion` work without editing `agent/connections/notion.ts`.
+The deploy button does not require these integrations. For manual setup, put the returned connector UIDs in `SLACK_CONNECTOR`, `NOTION_CONNECTOR`, `LINEAR_CONNECTOR`, and `SENTRY_CONNECTOR`. Local development falls back to `slack/eve-chat-template`, `notion`, `linear`, and `sentry`, so connectors created with the names above work without editing `agent/`.
 
 If the connector is not attached to the linked project, run:
 
@@ -118,13 +128,14 @@ pnpm dev
 - Drizzle schema and migrations under `lib/db`
 - Saved eve session cursors and event snapshots
 - Sidebar history with delete and new-chat actions
-- Vercel Connect-backed Notion MCP connection
+- Vercel Connect-backed Notion, Linear, and Sentry MCP connections
+- Vercel Connect-backed Slack channel route at `/eve/v1/slack`
 - Composer-level connections menu
 - First-message chat titles derived locally from the user's prompt
 - Streamdown markdown rendering for assistant text and reasoning
 - shadcn/Tailwind components for messages, tools, HITL prompts, and composer
 
-This template intentionally does not include Slack code, file uploads, Vercel Blob, guest mode, NextAuth/Auth.js, or AI Elements.
+This template intentionally does not include file uploads, Vercel Blob, guest mode, NextAuth/Auth.js, or AI Elements.
 
 ## Agent Code
 

@@ -223,14 +223,21 @@ PORT=3001 pnpm dev -p 3001
 
 Open the matching local URL and make sure the Vercel App contains the same callback URL.
 
-## Optional Notion Connection
+## Optional Vercel Connect Integrations
 
-Notion is optional and is not part of the required deploy button flow.
+Slack, Notion, Linear, and Sentry are optional and are not part of the required deploy button flow.
 
-Create the connector:
+Create any connectors you want to use:
 
 ```bash
+# Slack channel
+vercel connect create slack --name eve-chat-template --triggers
+vercel connect attach <slack-connector-uid> --triggers --trigger-path /eve/v1/slack --yes
+
+# MCP connections
 vercel connect create mcp.notion.com --name notion
+vercel connect create https://mcp.linear.app/mcp --name linear
+vercel connect create https://mcp.sentry.dev/mcp --name sentry
 ```
 
 Attach it to the linked Vercel project if needed:
@@ -239,16 +246,19 @@ Attach it to the linked Vercel project if needed:
 vercel connect attach <connector-uid> --yes
 ```
 
-Set `NOTION_CONNECTOR` to the connector UID:
+Set the matching environment variable to each connector UID:
 
 ```bash
+printf '%s' "<slack-connector-uid>" | vercel env add SLACK_CONNECTOR production preview development
 printf '%s' "<connector-uid>" | vercel env add NOTION_CONNECTOR production preview development
+printf '%s' "<connector-uid>" | vercel env add LINEAR_CONNECTOR production preview development
+printf '%s' "<connector-uid>" | vercel env add SENTRY_CONNECTOR production preview development
 vercel env pull .env.local --yes
 ```
 
-For local development, the connection falls back to `notion`, so a local connector created with `--name notion` can work without editing `agent/connections/notion.ts`.
+For local development, the connections fall back to `slack/eve-chat-template`, `notion`, `linear`, and `sentry`, so local connectors created with the names above can work without editing files under `agent/`.
 
-If a chat requires Notion authorization, use the Connect card in the chat UI. If you want to manage the connector directly, open the project integrations/settings page in Vercel and find the Notion connector.
+If a chat requires MCP authorization, use the Connect card in the chat UI. If you want to manage a connector directly, open the project integrations/settings page in Vercel and find the connector.
 
 See [Deploy Button integrations](https://vercel.com/docs/integrations/deploy-button/integrations) for how storage products are declared in the deploy URL.
 

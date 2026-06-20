@@ -1960,9 +1960,31 @@ function usePendingUserMessage() {
   return { clearMessage, message, messageRef, setMessage };
 }
 
+const CONNECTION_LABELS = {
+  linear: "Linear",
+  notion: "Notion",
+  sentry: "Sentry",
+} satisfies Record<keyof EnabledConnections, string>;
+
 function createConnectionClientContext(enabledConnections: EnabledConnections) {
-  if (enabledConnections.notion) {
-    return "The user has enabled the Notion connection for this turn. Use the Notion connection when it is relevant to the user's request.";
+  const entries = Object.entries(CONNECTION_LABELS) as [
+    keyof EnabledConnections,
+    string,
+  ][];
+  const enabled = entries
+    .filter(([connection]) => enabledConnections[connection])
+    .map(([, label]) => label);
+  const disabled = entries
+    .filter(([connection]) => !enabledConnections[connection])
+    .map(([, label]) => label);
+
+  if (enabled.length > 0) {
+    const disabledContext =
+      disabled.length > 0
+        ? ` Do not use disabled connections unless the user enables them first: ${disabled.join(", ")}.`
+        : "";
+
+    return `The user has enabled these external connections for this turn: ${enabled.join(", ")}. Use an enabled connection when it is relevant to the user's request.${disabledContext}`;
   }
 
   return "The user has disabled all external connections for this turn. Do not search or call connection tools unless the user enables a connection first.";
@@ -2087,8 +2109,8 @@ export function ComposerFooterControls({
     <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden">
       <ComposerHint setupStatus={setupStatus} />
       <IntegrationsMenu
-        notionEnabled={enabledConnections.notion}
-        onNotionEnabledChange={(enabled) => setConnectionEnabled("notion", enabled)}
+        enabledConnections={enabledConnections}
+        onConnectionEnabledChange={setConnectionEnabled}
         setupStatus={setupStatus}
       />
     </div>

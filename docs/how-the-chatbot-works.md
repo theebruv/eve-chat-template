@@ -25,7 +25,10 @@ Important files:
 | --- | --- |
 | `agent/agent.ts` | Defines the Eve agent and model. |
 | `agent/channels/eve.ts` | Configures the Eve web channel and auth adapters. |
+| `agent/channels/slack.ts` | Configures the Slack channel route and Vercel Connect credentials. |
 | `agent/connections/notion.ts` | Defines the Notion MCP connection through Vercel Connect. |
+| `agent/connections/linear.ts` | Defines the Linear MCP connection through Vercel Connect. |
+| `agent/connections/sentry.ts` | Defines the Sentry MCP connection through Vercel Connect. |
 | `next.config.ts` | Wraps the app with `withEve(nextConfig)`, which mounts the `/eve/v1/*` routes. |
 | `app/(chat)/layout.tsx` | Renders the static chat shell immediately, then streams viewer/setup/sidebar data through Suspense. |
 | `app/(chat)/page.tsx` | Root chat screen. Creates a new chat row and navigates into `/chat/[id]`. |
@@ -564,14 +567,15 @@ Eve:
 createConnectionClientContext(enabledConnections)
 ```
 
-If Notion is enabled, the context tells Eve the user enabled Notion for this
-turn. If Notion is disabled, it tells Eve not to search or call connection tools
-unless the user enables a connection first.
+If a connection is enabled, the context tells Eve which of Notion, Linear, and
+Sentry the user enabled for this turn. Disabled connections are called out so
+the model does not use them unless the user enables them first.
 
 This toggle does not provision, create, or revoke a Vercel Connect connector. It
 only controls per-turn agent behavior.
 
-The actual Notion connector is configured in `agent/connections/notion.ts`:
+The actual MCP connectors are configured in `agent/connections/*.ts`. For
+example, Notion is configured in `agent/connections/notion.ts`:
 
 ```ts
 const notionConnector = process.env.NOTION_CONNECTOR ?? "notion";
@@ -583,9 +587,10 @@ export default defineMcpClientConnection({
 });
 ```
 
-For production, the deploy flow can provision `NOTION_CONNECTOR`. For local
-development, `vercel connect create mcp.notion.com --name notion` matches the
-fallback name.
+For production, set `NOTION_CONNECTOR`, `LINEAR_CONNECTOR`, and
+`SENTRY_CONNECTOR` to the returned Vercel Connect connector UIDs. For local
+development, connectors created with `--name notion`, `--name linear`, and
+`--name sentry` match the fallback names.
 
 ## Auth
 
@@ -846,8 +851,9 @@ Do not parse assistant text to detect auth requirements. Rely on
 
 ## Adding A New Channel
 
-This template currently exposes a web chat channel through `agent/channels/eve.ts`
-and the `withEve` Next.js integration.
+This template exposes a web chat channel through `agent/channels/eve.ts`, a
+Slack channel through `agent/channels/slack.ts`, and the `withEve` Next.js
+integration.
 
 If you add another channel, keep this separation:
 

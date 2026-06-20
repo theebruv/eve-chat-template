@@ -190,32 +190,76 @@ else
   warn "Could not resolve a production domain. Set BETTER_AUTH_URL on Production/Preview manually."
 fi
 
-# --- 6b. Optional: Notion connector -----------------------------------------
-step "Optional: Notion connector"
-if vercel env ls $SCOPE_FLAGS 2>/dev/null | grep -q 'NOTION_CONNECTOR'; then
-  echo "  NOTION_CONNECTOR already set, skipping Notion setup"
-  SETUP_NOTION="n"
-else
-  read -r -p "  Set up the Notion MCP connector now? [y/N] " SETUP_NOTION </dev/tty
-fi
-case "${SETUP_NOTION:-n}" in
-  [yY]*)
-    echo "  Creating connector (a browser may open to authorize Notion)..."
-    NOTION_JSON=$(vercel connect create mcp.notion.com --name notion --format json) || NOTION_JSON=""
-    NOTION_UID=$(printf '%s' "$NOTION_JSON" | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{try{const o=JSON.parse(s);const c=o.connector||o;console.log(c.uid||c.id||"")}catch{console.log("")}})')
-    if [ -n "$NOTION_UID" ]; then
-      echo "  connector: $NOTION_UID"
-      vercel connect attach "$NOTION_UID" --yes >/dev/null \
-        || warn "Could not attach the connector automatically; attach it from the dashboard if needed."
-      set_env NOTION_CONNECTOR "$NOTION_UID" encrypted '["production","preview","development"]'
-    else
-      warn "Could not determine the connector UID. Create it manually and set NOTION_CONNECTOR (see docs/setup-and-deploy.md, step 6)."
-    fi
-    ;;
-  *)
-    echo "  Skipped. The app falls back to a connector named \"notion\" if NOTION_CONNECTOR is unset."
-    ;;
-esac
+# --- 6b. Optional Vercel Connect integrations -------------------------------
+connector_uid_from_json() {
+  node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>{try{const o=JSON.parse(s);const c=o.connector||o;console.log(c.uid||c.id||"")}catch{console.log("")}})'
+}
+
+setup_optional_mcp_connector() {
+  local label="$1" env_key="$2" create_arg="$3" connector_name="$4"
+  local answer json uid
+
+  step "Optional: $label MCP connector"
+  if vercel env ls $SCOPE_FLAGS 2>/dev/null | grep -q "$env_key"; then
+    echo "  $env_key already set, skipping $label setup"
+    return
+  fi
+
+  read -r -p "  Set up the $label MCP connector now? [y/N] " answer </dev/tty
+  case "${answer:-n}" in
+    [yY]*)
+      echo "  Creating connector (a browser may open to authorize $label)..."
+      json=$(vercel connect create "$create_arg" --name "$connector_name" --format json) || json=""
+      uid=$(printf '%s' "$json" | connector_uid_from_json)
+      if [ -n "$uid" ]; then
+        echo "  connector: $uid"
+        vercel connect attach "$uid" --yes >/dev/null \
+          || warn "Could not attach the connector automatically; attach it from the dashboard if needed."
+        set_env "$env_key" "$uid" encrypted '["production","preview","development"]'
+      else
+        warn "Could not determine the connector UID. Create it manually and set $env_key."
+      fi
+      ;;
+    *)
+      echo "  Skipped. The app falls back to a connector named \"$connector_name\" if $env_key is unset."
+      ;;
+  esac
+}
+
+setup_optional_slack_connector() {
+  local answer json uid
+
+  step "Optional: Slack channel connector"
+  if vercel env ls $SCOPE_FLAGS 2>/dev/null | grep -q 'SLACK_CONNECTOR'; then
+    echo "  SLACK_CONNECTOR already set, skipping Slack setup"
+    return
+  fi
+
+  read -r -p "  Set up the Slack channel connector now? [y/N] " answer </dev/tty
+  case "${answer:-n}" in
+    [yY]*)
+      echo "  Creating Slack connector (a browser may open to install Slack)..."
+      json=$(vercel connect create slack --name eve-chat-template --triggers --format json) || json=""
+      uid=$(printf '%s' "$json" | connector_uid_from_json)
+      if [ -n "$uid" ]; then
+        echo "  connector: $uid"
+        vercel connect attach "$uid" --triggers --trigger-path /eve/v1/slack --yes >/dev/null \
+          || warn "Could not attach Slack triggers automatically; attach /eve/v1/slack from the dashboard if needed."
+        set_env SLACK_CONNECTOR "$uid" encrypted '["production","preview","development"]'
+      else
+        warn "Could not determine the Slack connector UID. Create it manually and set SLACK_CONNECTOR."
+      fi
+      ;;
+    *)
+      echo "  Skipped. The app falls back to \"slack/eve-chat-template\" if SLACK_CONNECTOR is unset."
+      ;;
+  esac
+}
+
+setup_optional_slack_connector
+setup_optional_mcp_connector "Notion" NOTION_CONNECTOR mcp.notion.com notion
+setup_optional_mcp_connector "Linear" LINEAR_CONNECTOR https://mcp.linear.app/mcp linear
+setup_optional_mcp_connector "Sentry" SENTRY_CONNECTOR https://mcp.sentry.dev/mcp sentry
 
 # --- 7. Pull environment variables locally ----------------------------------
 step "Pulling environment variables to .env.local"
