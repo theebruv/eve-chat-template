@@ -1,8 +1,8 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { BugIcon, CircleDotIcon, HammerIcon } from "lucide-react";
-import { NotionIcon } from "@/components/icons";
+import { HammerIcon } from "lucide-react";
+import { LinearIcon, NotionIcon, SentryIcon } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +21,8 @@ type ConnectionItem = {
 
 const CONNECTION_ITEMS: readonly ConnectionItem[] = [
   { key: "notion", label: "Notion", Icon: NotionIcon },
-  { key: "linear", label: "Linear", Icon: CircleDotIcon },
-  { key: "sentry", label: "Sentry", Icon: BugIcon },
+  { key: "linear", label: "Linear", Icon: LinearIcon },
+  { key: "sentry", label: "Sentry", Icon: SentryIcon },
 ];
 
 export function IntegrationsMenu({
@@ -74,7 +74,7 @@ export function IntegrationsMenu({
               role="menuitemcheckbox"
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground">
-                <Icon className="size-[18px]" />
+                <Icon className="size-[18px] text-foreground" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm text-foreground">{label}</span>
